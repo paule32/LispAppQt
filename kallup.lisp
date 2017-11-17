@@ -29,7 +29,6 @@
 ;;
 ;; Variabeln
 (defvar *application-id-return* 0)
-(funcall #'setup-controls)
 
 (defclass application()
     ((name :initarg :name :initform (error "ApplikationName muss angegeben werden."))
@@ -40,12 +39,52 @@
      (pid    :initarg :pid    :initform *application-id*)))
 ;;
 ;; run/exec application
+(defgeneric init (app))
+(defmethod  init ((app application-gui))
+    (slot-value app 'pid)
+    (progn (setq *application-id* (kallup-init-app))
+           (setq *application-id-window* (kallup-init-window))))
+
 (defgeneric exec (app))
 (defmethod  exec ((app application-gui))
     (slot-value app 'pid)
-    (progn (setq *application-id* (kallup-init-app))
-           (setq *application-id-window* (kallup-init-window)) (setup-controls)
-           (setq *application-id-return* (kallup-exec-app *application-id*))))
+    (setq *application-id-return* (kallup-exec-app *application-id*)))
+
+;; Creates a new node that contains 'data' as its data.
+(defun make-menu (data)
+    (cons (cons data nil) nil))
+
+;; Takes two nodes created with 'make-tree' and adds the
+;; second node as a child of the first. Returns the first node,
+;; which will be modified.
+(defun add-menu (tree child)
+    (nconc (car tree) child)
+    tree)
+
+;; Returns a reference to the next sibling of the node passed in,
+;; or nil if this node does not have any siblings.
+(defun next-sibling (tree)
+    (cdr tree))
+
+;; Returns a reference to the first child of the node passed in,
+;; or nil if this node does not have children.
+(defun first-child (tree)
+    (when (listp tree)
+        (cdr (car tree))))
+
+;; Returns the information contained in this node.
+(defun data (tree)
+    (car (car tree)))
+
+(defun traverse (tree &optional (padding 0))
+  (when tree
+    (format t "~&~v@TData: ~A" padding (data tree))
+    (when (first-child tree)
+      (format t "  Children: ~A"
+              (maplist #'(lambda (x) (data x))
+                       (first-child tree))))
+    (traverse (first-child tree) (+ padding 3))
+    (traverse (next-sibling tree) padding)))
 
 ;; ----------------------------------------------------------------
 ;; SuperDeviceClass = Europa
